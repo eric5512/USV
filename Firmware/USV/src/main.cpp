@@ -42,18 +42,76 @@
 
 // }
 
-#include <Servo.h>
+//CODE TEST Motor
+// #include<Servo.h>
+// #include<Arduino.h>
+
+// Servo m1; //motor #1
+// void setup()
+// {
+//   m1.attach(6); //connect the signal pin of esc to any pwm enabled pin on the arduino. In this case its pin 6
+//   delay(1); // no use of this line -_-
+//   m1.write(40);// this arms the HW esc
+//   delay(3000);// this delay is a must.
+// }
+// void loop()
+// {
+//   m1.write(50);
+// }
+
 #include <Arduino.h>
+#include <Servo.h>
+#include <IRremote.hpp>
 
-Servo myservo;  // create Servo object to control a servo
-// twelve Servo objects can be created on most boards
+#define IR_RECEIVE_PIN 21
 
-int pos = 0;    // variable to store the servo position
+#define SERVO_ZERO     90
+#define SERVO_RIGHT    135
+#define SERVO_LEFT     45
+
+#define BLDC_ON        70
+#define BLDC_OFF       40
+
+Servo servo;
+Servo bldc;
+
+void reset_state();
 
 void setup() {
-  myservo.attach(7);  // attaches the servo on pin 9 to the Servo object
+  Serial.begin(115200);
+  servo.attach(7);
+  bldc.attach(6);
+  reset_state();
+  delay(3000);
+  IrReceiver.begin(IR_RECEIVE_PIN, ENABLE_LED_FEEDBACK);  
 }
 
 void loop() {
-  myservo.write(95);
+  if (IrReceiver.decode()) {
+    switch (IrReceiver.decodedIRData.command) {
+      case 128: // Reset
+      reset_state();
+      Serial.println("Reset");
+      break;
+      case 101: // Start BLDC
+      bldc.write(BLDC_ON);
+      Serial.println("Start BLDC");
+      break;
+      case 102: // Servo right 
+      servo.write(SERVO_RIGHT);
+      Serial.println("Servo right");
+      break;
+      case 100: // Servo left 
+      servo.write(SERVO_LEFT);
+      Serial.println("Servo left");
+      break;
+    }
+    delay(200);
+    IrReceiver.resume();
+  }
+}
+
+void reset_state() {
+  servo.write(SERVO_ZERO);
+  bldc.write(BLDC_OFF);
 }
